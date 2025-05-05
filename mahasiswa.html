@@ -1,0 +1,164 @@
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>RMN_4SC - Mahasiswa</title>
+
+    <!-- Custom fonts -->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet">
+
+    <!-- Custom styles -->
+    <link href="css/sb-admin-2.min.css" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.0/firebase-analytics.js"></script>
+
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyAzTlpNfgS8E6akBfYxv3bXpcCs5Dwb4rU",  
+            authDomain: "ammar-project-ae8c1.firebaseapp.com",
+            databaseURL: "https://ammar-project-ae8c1-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "ammar-project-ae8c1",
+            storageBucket: "ammar-project-ae8c1.firebasestorage.app",
+            messagingSenderId: "121714274560",
+            appId: "1:121714274560:web:d98a570d2618e782ba43e5",
+            measurementId: "G-0G7W0BE4R7"
+        };
+        firebase.initializeApp(firebaseConfig);
+        firebase.analytics();
+    </script>
+</head>
+
+<body id="page-top" onload="getdata()">
+    <div class="container-fluid">
+        <h1 class="h3 mb-4 text-gray-800">Mahasiswa
+            <a href="add_mahasiswa.html" class="btn btn-success btn-user">Tambah Baru</a>
+        </h1>
+        <hr />
+
+        <form class="user">
+            <div class="form-group">
+                <input type="text" class="form-control" id="uid" placeholder="ID" readonly>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" id="kode" placeholder="Kode Mahasiswa">
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" id="nama" placeholder="Nama Mahasiswa">
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" id="gambar" name="gambar" readonly>
+            </div>
+            <input type="button" value="Update" onclick="update_user()" class="btn btn-warning btn-user" />
+            <input type="button" value="Delete" onclick="delete_user()" class="btn btn-danger btn-user" />
+            <a id="myAnchor" href="edit_foto_mahasiswa.html" class="btn btn-primary btn-user">Ganti Foto</a>
+            <hr>
+        </form>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tb_mhs" class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>#ID</th>
+                                <th>Kode</th>
+                                <th>Nama</th>
+                                <th>Foto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data akan ditambahkan oleh Firebase -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Bootstrap -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+
+    <script>
+        function getdata() {
+            var tbMhs = document.getElementById('tb_mhs').getElementsByTagName('tbody')[0];
+            var databaseRef = firebase.database().ref('mahasiswa/');
+            var rowIndex = 0;
+
+            databaseRef.once('value', function (snapshot) {
+                snapshot.forEach(function (childSnapshot) {
+                    var childKey = childSnapshot.key;
+                    var childData = childSnapshot.val();
+
+                    var row = tbMhs.insertRow(rowIndex++);
+                    row.insertCell(0).innerHTML = childKey;
+                    row.insertCell(1).innerHTML = childData.kode;
+                    row.insertCell(2).innerHTML = childData.nama;
+                    var cellFoto = row.insertCell(3);
+
+                    var storage = firebase.storage();
+                    var pathReference = storage.ref().child('Images/' + childData.foto);
+                    pathReference.getDownloadURL().then(function (url) {
+                        var img = document.createElement('img');
+                        img.src = url;
+                        img.width = 100;
+                        cellFoto.appendChild(img);
+                    }).catch(function (error) {
+                        cellFoto.innerHTML = "No Image";
+                    });
+
+                    row.onclick = function () {
+                        document.getElementById('uid').value = childKey;
+                        document.getElementById('kode').value = childData.kode;
+                        document.getElementById('nama').value = childData.nama;
+                        document.getElementById("myAnchor").href = "edit_foto_mahasiswa.html?id=" + childKey;
+                        document.getElementById('gambar').value = childData.foto;
+                    };
+                });
+            });
+        }
+
+        function update_user() {
+            var uid = document.getElementById('uid').value;
+            var data = {
+                kode: document.getElementById('kode').value,
+                nama: document.getElementById('nama').value,
+                foto: document.getElementById('gambar').value
+            };
+            firebase.database().ref('/mahasiswa/' + uid).update(data)
+                .then(() => {
+                    alert('Mahasiswa berhasil diperbarui!');
+                    reload_page();
+                });
+        }
+
+        function delete_user() {
+            var uid = document.getElementById('uid').value;
+            firebase.database().ref('/mahasiswa/' + uid).remove()
+                .then(() => {
+                    alert('Mahasiswa berhasil dihapus!');
+                    reload_page();
+                });
+        }
+
+        function reload_page() {
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>
